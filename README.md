@@ -8,23 +8,25 @@ SimpleFace is a lightweight Python tool designed for simple facial recognition t
 
 # Installation
 1. Clone the repository
-```
+```bash
 git clone git@github.com:yahyafati/face-recognizer.git
 cd face-recognizer
 ```
 2. Create and activate a python virtual environment (`venv`) (Recommended)
-```
+```bash
 python3 -m venv .
 source ./bin/activate      # For macOS/Linux
 .\Scripts\activate       # For Windows
 ```
 3. Install Dependencies
-```
-pip install -r requirements.txt
+```bash
+./bin/pip install -r requirements.txt # For macOS/Linux
+.\Scripts\pip install -r requirements.txt # For Windows
 ```
 4. Run **Simple Face**
-```
-python main.py
+```bash
+./bin/python main.py # For macOS/Linux
+.\Scripts\python main.py # For Windows
 ```
 
 Notes:
