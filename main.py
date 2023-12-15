@@ -57,7 +57,7 @@ class FaceRecognizer:
     def handle_key_press(self, key):
         unknown_name = "".join([chr(k) for k in self.prev_keys])
         unknown_name = unknown_name.strip().capitalize()
-        if key == ord("q"):
+        if key == 27: # Escape
             return False
         elif key == 13: # Enter
             self.prev_keys = []
