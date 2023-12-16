@@ -46,14 +46,12 @@ class FaceRecognizer:
     def display_annotations(self, frame, face):
         face_encoding = face.encoding
         best_match_index = face.best_match_index
-        (top, right, bottom, left) = face.location
+        (top, right, bottom, left) = face.get_location_scaled(4)
         name = face.name
-        top *= 4
-        right *= 4
-        bottom *= 4
-        left *= 4
 
         cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
+        center = face.get_center_scaled(4)
+        cv2.circle(frame, center, 2, (0, 255, 0), 2)
 
         cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 255, 0), cv2.FILLED)
         font = cv2.FONT_HERSHEY_DUPLEX
