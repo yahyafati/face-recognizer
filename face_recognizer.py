@@ -21,6 +21,8 @@ class FaceRecognizer:
     video_capture = None
     food_position = (400, 400)
     play_flappy = False
+    start_button_location = (300, 300)
+    start_pressed = False
 
     @staticmethod
     def get_face_by_name(faces, name):
@@ -35,6 +37,12 @@ class FaceRecognizer:
         x2, y2, r2 = circle2
         distance = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
         return distance < r1 + r2
+    
+    @staticmethod
+    def is_inside_rectangle(rectangle, point):
+        x, y = point
+        x1, y1, x2, y2 = rectangle
+        return x1 <= x <= x2 and y1 <= y <= y2
     
 
     def __init__(self):
@@ -70,7 +78,22 @@ class FaceRecognizer:
     def place_food(self, frame):
         overlay_image_transparent(frame, self.overlay_apple_image, self.food_position[0], self.food_position[1])
 
+    def display_start_button(self, frame):
+        # draw a rectangle with text "Start" at the position of the start button
+        top = self.start_button_location[1]
+        left = self.start_button_location[0]
+        right = left + 200
+        bottom = top + 100
+        cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), cv2.FILLED)
+        font = cv2.FONT_HERSHEY_DUPLEX
+        text = "Start"
+        cv2.putText(frame, text, (left + 50, bottom - 50), font, 1.0, (0, 0, 0), 2)
+
+
     def display_annotations(self, frame, face, no_tracking=False):
+        if self.play_flappy and not self.start_pressed:
+            self.display_start_button(frame)
+            # return
         face_encoding = face.encoding
         best_match_index = face.best_match_index
         (top, right, bottom, left) = face.get_location(4)
@@ -192,12 +215,11 @@ class FaceRecognizer:
 
     def run_recognition(self):
         cv2.namedWindow("Video")
-        if not self.play_flappy:
-            mouse_callback = lambda event, x, y, flags, param: mouse_callback_handler(self, event, x, y, flags, param)
-            cv2.setMouseCallback("Video", mouse_callback)
+        mouse_callback = lambda event, x, y, flags, param: mouse_callback_handler(self, event, x, y, flags, param)
+        cv2.setMouseCallback("Video", mouse_callback)
         
-        start_time = time()
-        end_time = start_time + 20
+        start_time = None
+        end_time = None
         while True:
             if self.paused:
                 if not self.handle_key_press(cv2.waitKey(1)):
@@ -206,14 +228,18 @@ class FaceRecognizer:
             frame = self.next_frame()
             rgb_small_frame = self.get_small_rgb_frame()
 
+            if self.start_pressed and start_time is None:
+                start_time = time()
+                end_time = start_time + 30
+                self.generate_food_position(frame)
 
             if self.process_this_frame:
                 self.process_frame(rgb_small_frame)
             
             self.process_this_frame = not self.process_this_frame
-            if self.play_flappy:
+            if self.play_flappy and self.start_pressed:
                 self.write_remaining_time(frame, end_time - time())
-            if time() > end_time and self.play_flappy:
+            if self.play_flappy and self.start_pressed and time() > end_time:
                 break
 
             for face in self.faces:
@@ -263,6 +289,12 @@ def mouse_callback_handler(face_recognizer: FaceRecognizer, event, x, y, _flags,
     if face_recognizer.taking_input:
         return
     if event == cv2.EVENT_LBUTTONDOWN:
+        if face_recognizer.play_flappy:
+            button_location = (face_recognizer.start_button_location[0], face_recognizer.start_button_location[1], face_recognizer.start_button_location[0] + 200, face_recognizer.start_button_location[1] + 100)
+            if face_recognizer.is_inside_rectangle(button_location, (x, y)):
+                face_recognizer.start_pressed = True
+            if face_recognizer.start_pressed:
+                return
         face_recognizer.toggle_pause()
         if not face_recognizer.paused:
             return
