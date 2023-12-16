@@ -18,6 +18,7 @@ class FaceRecognizer:
     paused = False
     taking_input = False
     current_frame = None
+    video_capture = None
 
     @staticmethod
     def get_face_by_name(faces, name):
@@ -46,7 +47,7 @@ class FaceRecognizer:
     def get_known_face_encodings(self):
         return [face.encoding for face in self.known_faces]
 
-    def display_annotations(self, frame, face):
+    def display_annotations(self, frame, face, no_tracking=False):
         face_encoding = face.encoding
         best_match_index = face.best_match_index
         (top, right, bottom, left) = face.get_location(4)
@@ -56,13 +57,12 @@ class FaceRecognizer:
         center = face.get_center(4)
         cv2.circle(frame, center, 2, face.color, 2)
 
-
-        # creat a line from the center of the face to the center of the previous face
-        previous_centers = face.get_previous_centers(4)
-        for i, previous_center in enumerate(previous_centers):
-            if i == 0:
-                continue
-            cv2.line(frame, previous_centers[i - 1], previous_center, face.color, 2)
+        if not no_tracking:
+            previous_centers = face.get_previous_centers(4)
+            for i, previous_center in enumerate(previous_centers):
+                if i == 0:
+                    continue
+                cv2.line(frame, previous_centers[i - 1], previous_center, face.color, 2)
         
         cv2.rectangle(frame, (left, bottom - 35), (right, bottom), face.color, cv2.FILLED)
         font = cv2.FONT_HERSHEY_DUPLEX
@@ -123,10 +123,17 @@ class FaceRecognizer:
                 return face
         return None
     
+    def next_frame(self):
+        _, frame = self.video_capture.read()
+        self.current_frame = frame
+        return frame
+    
     def run_recognition(self):
-        video_capture = cv2.VideoCapture(0)
+        if not self.video_capture:
+            self.video_capture = cv2.VideoCapture(0)
 
-        if not video_capture.isOpened():
+
+        if not self.video_capture.isOpened():
             print("Error opening video capture")
             sys.exit(1)
         
@@ -139,8 +146,7 @@ class FaceRecognizer:
                 if not self.handle_key_press(cv2.waitKey(1)):
                     break
                 continue
-            _, frame = video_capture.read()
-            self.current_frame = frame
+            frame = self.next_frame()
             rgb_small_frame = self.get_small_rgb_frame()
 
 
@@ -157,7 +163,7 @@ class FaceRecognizer:
             key = cv2.waitKey(1)
             if not self.handle_key_press(key):
                 break
-        video_capture.release()
+        self.video_capture.release()
         cv2.destroyAllWindows()
     
     def toggle_pause(self):
@@ -187,9 +193,10 @@ def mouse_callback_handler(face_recognizer: FaceRecognizer, event, x, y, _flags,
             return
         face = face_recognizer.get_face_by_position(x, y)
         if face:
+            face_recognizer.next_frame()
             face.name = "Selected"
             face.color = (0, 255, 0)
-            face_recognizer.display_annotations(face_recognizer.current_frame, face)
+            face_recognizer.display_annotations(face_recognizer.current_frame, face, no_tracking=True)
             cv2.imshow("Video", face_recognizer.current_frame)
             cv2.waitKey(1)
             face_recognizer.taking_input = True
@@ -200,7 +207,7 @@ def mouse_callback_handler(face_recognizer: FaceRecognizer, event, x, y, _flags,
             face.name = name
             face.color = Face.random_safe_color()
             face_recognizer.known_faces.append(face)
-            face_recognizer.display_annotations(face_recognizer.current_frame, face)
+            face_recognizer.display_annotations(face_recognizer.current_frame, face, no_tracking=True)
             cv2.imshow("Video", face_recognizer.current_frame)
             face_recognizer.toggle_pause()
 
