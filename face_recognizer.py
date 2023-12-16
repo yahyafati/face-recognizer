@@ -38,8 +38,11 @@ class FaceRecognizer:
     
 
     def __init__(self):
-        self.overlay_image = cv2.imread("assets/flappy.png", cv2.IMREAD_UNCHANGED)
-        self.overlay_image = cv2.resize(self.overlay_image, (0, 0), fx=0.1, fy=0.1)
+        self.overlay_duck_image = cv2.imread("assets/flappy.png", cv2.IMREAD_UNCHANGED)
+        self.overlay_duck_image = cv2.resize(self.overlay_duck_image, (0, 0), fx=0.1, fy=0.1)
+        self.overlay_apple_image = cv2.imread("assets/apple.png", cv2.IMREAD_UNCHANGED)
+        self.overlay_apple_image = cv2.resize(self.overlay_apple_image, (0, 0), fx=0.05, fy=0.05)
+
         self.encode_faces()
     
     def encode_faces(self):
@@ -65,7 +68,7 @@ class FaceRecognizer:
         self.food_position = (np.random.randint(padding, frame_width - padding), np.random.randint(padding, frame_height - padding))
 
     def place_food(self, frame):
-        cv2.circle(frame, self.food_position, 20, (0, 255, 0), 2, cv2.FILLED)
+        overlay_image_transparent(frame, self.overlay_apple_image, self.food_position[0], self.food_position[1])
 
     def display_annotations(self, frame, face, no_tracking=False):
         face_encoding = face.encoding
@@ -79,7 +82,7 @@ class FaceRecognizer:
 
         if not no_tracking:
             if self.play_flappy:
-                overlay_image_transparent(frame, self.overlay_image, center[0] - 50, center[1] - 50)
+                overlay_image_transparent(frame, self.overlay_duck_image, center[0] - 50, center[1] - 50)
                 self.place_food(frame)
                 if self.circles_intersect((center[0], center[1], 50), (self.food_position[0], self.food_position[1], 20)):
                     self.generate_food_position(frame)
