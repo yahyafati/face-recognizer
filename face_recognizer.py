@@ -104,7 +104,9 @@ class FaceRecognizer:
 
         if self.play_flappy:
             score_text = f"Score: {face.score}"
-            cv2.putText(frame, score_text, (left + 6, bottom - 6 - 35), font, 1.0, (0, 0, 0), 1)
+            color = (255, 255, 255)
+            bold = 2
+            cv2.putText(frame, score_text, (left + 6, bottom - 6 - 35), font, 1.0, color, bold)
     
     def handle_key_press(self, key):
         unknown_name = "".join([chr(k) for k in self.prev_keys])
@@ -177,7 +179,10 @@ class FaceRecognizer:
         top = 50
         right = frame.shape[1] - 200
         formatted = "{0:.2f} seconds".format(remaining_time_seconds)
-        cv2.putText(frame, formatted, (right - 100, top + 50), cv2.FONT_HERSHEY_DUPLEX, 1.0, (0, 0, 0), 1)
+        color = (255, 255, 255)
+        font = cv2.FONT_HERSHEY_DUPLEX
+        bold = 2
+        cv2.putText(frame, formatted, (right - 100, top + 50), font, 1.0, color, bold)
     
     def init_video_capture(self):
         self.video_capture = cv2.VideoCapture(0)
@@ -187,8 +192,9 @@ class FaceRecognizer:
 
     def run_recognition(self):
         cv2.namedWindow("Video")
-        mouse_callback = lambda event, x, y, flags, param: mouse_callback_handler(self, event, x, y, flags, param)
-        cv2.setMouseCallback("Video", mouse_callback)
+        if not self.play_flappy:
+            mouse_callback = lambda event, x, y, flags, param: mouse_callback_handler(self, event, x, y, flags, param)
+            cv2.setMouseCallback("Video", mouse_callback)
         
         start_time = time()
         end_time = start_time + 20
