@@ -22,6 +22,15 @@ class FaceRecognizer:
     faces: list[Face] = []
     known_faces: list[Face] = []
     unknown_faces: list[Face] = []
+
+    previous_faces: list[Face] = []
+
+    @staticmethod
+    def get_face_by_name(faces, name):
+        for face in faces:
+            if face.name and face.name.lower() == name.lower():
+                return face
+        return None
     
 
     def __init__(self):
@@ -46,13 +55,21 @@ class FaceRecognizer:
     def display_annotations(self, frame, face):
         face_encoding = face.encoding
         best_match_index = face.best_match_index
-        (top, right, bottom, left) = face.get_location_scaled(4)
+        (top, right, bottom, left) = face.get_location(4)
         name = face.name
 
-        cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
-        center = face.get_center_scaled(4)
-        cv2.circle(frame, center, 2, (0, 255, 0), 2)
+        cv2.rectangle(frame, (left, top), (right, bottom), face.color, 2)
+        center = face.get_center(4)
+        cv2.circle(frame, center, 2, face.color, 2)
 
+
+        # creat a line from the center of the face to the center of the previous face
+        previous_centers = face.get_previous_centers(4)
+        for i, previous_center in enumerate(previous_centers):
+            if i == 0:
+                continue
+            cv2.line(frame, previous_centers[i - 1], previous_center, face.color, 2)
+        
         cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 255, 0), cv2.FILLED)
         font = cv2.FONT_HERSHEY_DUPLEX
         confidence = face_confidence_formatted(face_recognition.face_distance(self.get_known_face_encodings(), face_encoding)[best_match_index])
@@ -80,9 +97,13 @@ class FaceRecognizer:
             print(key)
         return True
     
+    def get_by_name(self, name):
+        return FaceRecognizer.get_face_by_name(self.faces, name)
+    
     def process_frame(self, frame):
         face_locations = face_recognition.face_locations(frame)
         face_encodings = face_recognition.face_encodings(frame, face_locations)
+        self.previous_faces = self.faces.copy()
         self.faces = [Face(None, encoding, location) for encoding, location in zip(face_encodings, face_locations)]
         self.unknown_faces = []
 
@@ -99,6 +120,11 @@ class FaceRecognizer:
             if matches[best_match_index]:
                 name = self.known_faces[best_match_index].name
                 confidence = face_confidence_formatted(face_distances[best_match_index])
+                previous_face = FaceRecognizer.get_face_by_name(self.previous_faces, name)
+                if previous_face:
+                    face.previous_locations = previous_face.previous_locations.copy()
+                    face.color = previous_face.color
+                face.previous_locations.append(face.location)
             else:
                 self.unknown_faces.append(face)
             face.confidence = confidence
