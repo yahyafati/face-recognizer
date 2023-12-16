@@ -4,17 +4,8 @@ import os, sys
 import numpy as np
 import math
 from face import Face
-
-def face_confidence(face_distance, face_match_threshold=0.6):
-    _range = (1.0 - face_match_threshold)
-    linear_val = (1.0 - face_distance) / (_range * 2.0)
-    if face_distance > face_match_threshold:
-        return linear_val
-    else:
-        return linear_val + ((1.0 - linear_val) * math.pow((linear_val - 0.5) * 2, 0.2))
-
-def face_confidence_formatted(face_distance, face_match_threshold=0.6):
-    return "{0:.2f}%".format(face_confidence(face_distance, face_match_threshold) * 100)
+from time import sleep
+import copy
 
 class FaceRecognizer:
     process_this_frame = True
@@ -24,6 +15,8 @@ class FaceRecognizer:
     unknown_faces: list[Face] = []
 
     previous_faces: list[Face] = []
+    paused = False
+    current_frame = None
 
     @staticmethod
     def get_face_by_name(faces, name):
@@ -40,6 +33,7 @@ class FaceRecognizer:
         for directory in os.listdir("faces"):
             if os.path.isdir("faces/" + directory):
                 self.encode_faces_directory("faces/" + directory + "/", directory)
+        print("Faces encoded")
 
     def encode_faces_directory(self, directory, name):
         for image in os.listdir(directory):
@@ -47,7 +41,6 @@ class FaceRecognizer:
                 face_image = face_recognition.load_image_file(directory + image)
                 face_encoding = face_recognition.face_encodings(face_image)[0]
                 self.known_faces.append(Face(name, face_encoding))
-        print("Faces encoded")
     
     def get_known_face_encodings(self):
         return [face.encoding for face in self.known_faces]
@@ -70,7 +63,7 @@ class FaceRecognizer:
                 continue
             cv2.line(frame, previous_centers[i - 1], previous_center, face.color, 2)
         
-        cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 255, 0), cv2.FILLED)
+        cv2.rectangle(frame, (left, bottom - 35), (right, bottom), face.color, cv2.FILLED)
         font = cv2.FONT_HERSHEY_DUPLEX
         confidence = face_confidence_formatted(face_recognition.face_distance(self.get_known_face_encodings(), face_encoding)[best_match_index])
         text = name + " " + confidence
@@ -81,18 +74,6 @@ class FaceRecognizer:
         unknown_name = unknown_name.strip().capitalize()
         if key == 27: # Escape
             return False
-        elif key == 13: # Enter
-            self.prev_keys = []
-            for face in self.unknown_faces:
-                face.name = unknown_name
-            self.known_faces.extend(self.unknown_faces)
-            print("New faces added: ", unknown_name)
-        elif ord("a") <= key <= ord("z") or ord("A") <= key <= ord("Z") or key == ord(" "):
-            self.prev_keys.append(key)
-            print(f"\r{unknown_name}", end="")
-        elif key == 127: # Backspace
-            self.prev_keys = self.prev_keys[:-1]
-            print(f"\r{unknown_name}", end="")
         elif key != -1:
             print(key)
         return True
@@ -126,9 +107,20 @@ class FaceRecognizer:
                     face.color = previous_face.color
                 face.previous_locations.append(face.location)
             else:
+                face.color = (0, 0, 255)
                 self.unknown_faces.append(face)
             face.confidence = confidence
             face.name = name
+    
+    def get_small_rgb_frame(self):
+        small_frame = cv2.resize(self.current_frame, (0, 0), fx=0.25, fy=0.25)
+        return small_frame[:, :, ::-1]
+    
+    def get_face_by_position(self, x, y):
+        for face in self.faces:
+            if face.is_in_face(x, y, 4):
+                return face
+        return None
     
     def run_recognition(self):
         video_capture = cv2.VideoCapture(0)
@@ -137,10 +129,18 @@ class FaceRecognizer:
             print("Error opening video capture")
             sys.exit(1)
         
+        cv2.namedWindow("Video")
+        mouse_callback = lambda event, x, y, flags, param: mouse_callback_handler(self, event, x, y, flags, param)
+        cv2.setMouseCallback("Video", mouse_callback)
+        
         while True:
+            if self.paused:
+                if not self.handle_key_press(cv2.waitKey(1)):
+                    break
+                continue
             _, frame = video_capture.read()
-            small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
-            rgb_small_frame = small_frame[:, :, ::-1]
+            self.current_frame = frame
+            rgb_small_frame = self.get_small_rgb_frame()
 
 
             if self.process_this_frame:
@@ -158,3 +158,40 @@ class FaceRecognizer:
                 break
         video_capture.release()
         cv2.destroyAllWindows()
+    
+    def toggle_pause(self):
+        self.paused = not self.paused
+
+def face_confidence(face_distance, face_match_threshold=0.6):
+    _range = (1.0 - face_match_threshold)
+    linear_val = (1.0 - face_distance) / (_range * 2.0)
+    if face_distance > face_match_threshold:
+        return linear_val
+    else:
+        return linear_val + ((1.0 - linear_val) * math.pow((linear_val - 0.5) * 2, 0.2))
+
+def face_confidence_formatted(face_distance, face_match_threshold=0.6):
+    return "{0:.2f}%".format(face_confidence(face_distance, face_match_threshold) * 100)
+
+def mouse_callback_handler(face_recognizer: FaceRecognizer, event, x, y, _flags, _param):
+    if event == cv2.EVENT_LBUTTONDOWN:
+        face_recognizer.toggle_pause()
+        if not face_recognizer.paused:
+            return
+        face = face_recognizer.get_face_by_position(x, y)
+        if face:
+            face.name = "Selected"
+            face.color = (0, 255, 0)
+            face_recognizer.display_annotations(face_recognizer.current_frame, face)
+            cv2.imshow("Video", face_recognizer.current_frame)
+            cv2.waitKey(1)
+            name = input("Enter name: ").strip().capitalize()
+            while name == "":
+                name = input("Enter name: ").strip().capitalize()
+            face.name = name
+            face.color = Face.random_safe_color()
+            face_recognizer.known_faces.append(face)
+            face_recognizer.display_annotations(face_recognizer.current_frame, face)
+            cv2.imshow("Video", face_recognizer.current_frame)
+            face_recognizer.toggle_pause()
+
