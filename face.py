@@ -27,6 +27,7 @@ class Face:
         self.confidence = None
         self.previous_locations = []
         self.color = Face.random_safe_color()
+        self.score = 0
     
     def get_center(self, scale=1):
         return Face.calculate_center(self.location, scale)

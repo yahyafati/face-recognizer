@@ -4,7 +4,7 @@ import os, sys
 import numpy as np
 import math
 from face import Face
-from time import sleep
+from time import sleep, time
 import copy
 
 class FaceRecognizer:
@@ -19,6 +19,8 @@ class FaceRecognizer:
     taking_input = False
     current_frame = None
     video_capture = None
+    food_position = (400, 400)
+    play_flappy = False
 
     @staticmethod
     def get_face_by_name(faces, name):
@@ -27,8 +29,17 @@ class FaceRecognizer:
                 return face
         return None
     
+    @staticmethod
+    def circles_intersect(circle1, circle2):
+        x1, y1, r1 = circle1
+        x2, y2, r2 = circle2
+        distance = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+        return distance < r1 + r2
+    
 
     def __init__(self):
+        self.overlay_image = cv2.imread("assets/flappy.png", cv2.IMREAD_UNCHANGED)
+        self.overlay_image = cv2.resize(self.overlay_image, (0, 0), fx=0.1, fy=0.1)
         self.encode_faces()
     
     def encode_faces(self):
@@ -47,6 +58,15 @@ class FaceRecognizer:
     def get_known_face_encodings(self):
         return [face.encoding for face in self.known_faces]
 
+    def generate_food_position(self, frame):
+        frame_height, frame_width, _ = frame.shape
+        # padding of 100 px on each side
+        padding = 300
+        self.food_position = (np.random.randint(padding, frame_width - padding), np.random.randint(padding, frame_height - padding))
+
+    def place_food(self, frame):
+        cv2.circle(frame, self.food_position, 20, (0, 255, 0), 2, cv2.FILLED)
+
     def display_annotations(self, frame, face, no_tracking=False):
         face_encoding = face.encoding
         best_match_index = face.best_match_index
@@ -55,20 +75,33 @@ class FaceRecognizer:
 
         cv2.rectangle(frame, (left, top), (right, bottom), face.color, 2)
         center = face.get_center(4)
-        cv2.circle(frame, center, 2, face.color, 2)
+        # cv2.circle(frame, center, 50, face.color, 2)
 
         if not no_tracking:
-            previous_centers = face.get_previous_centers(4)
-            for i, previous_center in enumerate(previous_centers):
-                if i == 0:
-                    continue
-                cv2.line(frame, previous_centers[i - 1], previous_center, face.color, 2)
+            if self.play_flappy:
+                overlay_image_transparent(frame, self.overlay_image, center[0] - 50, center[1] - 50)
+                self.place_food(frame)
+                if self.circles_intersect((center[0], center[1], 50), (self.food_position[0], self.food_position[1], 20)):
+                    self.generate_food_position(frame)
+                    if face.best_match_index is not None:
+                        self.known_faces[face.best_match_index].score += 1
+                    face.score += 1
+            else:
+                previous_centers = face.get_previous_centers(4)
+                for i, previous_center in enumerate(previous_centers):
+                    if i == 0:
+                        continue
+                    cv2.line(frame, previous_centers[i - 1], previous_center, face.color, 2)
         
         cv2.rectangle(frame, (left, bottom - 35), (right, bottom), face.color, cv2.FILLED)
         font = cv2.FONT_HERSHEY_DUPLEX
         confidence = face_confidence_formatted(face_recognition.face_distance(self.get_known_face_encodings(), face_encoding)[best_match_index])
         text = name + " " + confidence
         cv2.putText(frame, text, (left + 6, bottom - 6), font, 1.0, (0, 0, 0), 1)
+
+        if self.play_flappy:
+            score_text = f"Score: {face.score}"
+            cv2.putText(frame, score_text, (left + 6, bottom - 6 - 35), font, 1.0, (0, 0, 0), 1)
     
     def handle_key_press(self, key):
         unknown_name = "".join([chr(k) for k in self.prev_keys])
@@ -95,23 +128,27 @@ class FaceRecognizer:
             matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
             name = "Unknown"
             confidence = "Unknown"
+            score = 0
 
             face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
             best_match_index = np.argmin(face_distances)
             face.best_match_index = best_match_index
             if matches[best_match_index]:
                 name = self.known_faces[best_match_index].name
+                score = self.known_faces[best_match_index].score
                 confidence = face_confidence_formatted(face_distances[best_match_index])
                 previous_face = FaceRecognizer.get_face_by_name(self.previous_faces, name)
                 if previous_face:
                     face.previous_locations = previous_face.previous_locations.copy()
                     face.color = previous_face.color
                 face.previous_locations.append(face.location)
+                face.previous_locations = face.previous_locations[-10:]
             else:
                 face.color = (0, 0, 255)
                 self.unknown_faces.append(face)
             face.confidence = confidence
             face.name = name
+            face.score = score
     
     def get_small_rgb_frame(self):
         small_frame = cv2.resize(self.current_frame, (0, 0), fx=0.25, fy=0.25)
@@ -125,22 +162,33 @@ class FaceRecognizer:
     
     def next_frame(self):
         _, frame = self.video_capture.read()
+        frame = cv2.flip(frame, 1)
+        if self.play_flappy:
+            darkness_factor = 0.4
+            frame = cv2.addWeighted(frame, darkness_factor, np.zeros(frame.shape, frame.dtype), 0, 0)
         self.current_frame = frame
         return frame
     
-    def run_recognition(self):
-        if not self.video_capture:
-            self.video_capture = cv2.VideoCapture(0)
-
-
+    def write_remaining_time(self, frame, remaining_time_seconds: int):
+        # at the top right corner
+        top = 50
+        right = frame.shape[1] - 200
+        formatted = "{0:.2f} seconds".format(remaining_time_seconds)
+        cv2.putText(frame, formatted, (right - 100, top + 50), cv2.FONT_HERSHEY_DUPLEX, 1.0, (0, 0, 0), 1)
+    
+    def init_video_capture(self):
+        self.video_capture = cv2.VideoCapture(0)
         if not self.video_capture.isOpened():
             print("Error opening video capture")
             sys.exit(1)
-        
+
+    def run_recognition(self):
         cv2.namedWindow("Video")
         mouse_callback = lambda event, x, y, flags, param: mouse_callback_handler(self, event, x, y, flags, param)
         cv2.setMouseCallback("Video", mouse_callback)
         
+        start_time = time()
+        end_time = start_time + 20
         while True:
             if self.paused:
                 if not self.handle_key_press(cv2.waitKey(1)):
@@ -154,9 +202,14 @@ class FaceRecognizer:
                 self.process_frame(rgb_small_frame)
             
             self.process_this_frame = not self.process_this_frame
+            if self.play_flappy:
+                self.write_remaining_time(frame, end_time - time())
+            if time() > end_time and self.play_flappy:
+                break
 
             for face in self.faces:
                 self.display_annotations(frame, face)
+            
             
             cv2.imshow("Video", frame)
 
@@ -183,6 +236,19 @@ def face_confidence(face_distance, face_match_threshold=0.6):
 
 def face_confidence_formatted(face_distance, face_match_threshold=0.6):
     return "{0:.2f}%".format(face_confidence(face_distance, face_match_threshold) * 100)
+
+def overlay_image(frame, image, x, y):
+    height, width, _ = image.shape
+    
+    frame[y:y + height, x:x + width] = image[:, :, :3]
+
+def overlay_image_transparent(frame, image, x, y):
+    height, width, _ = image.shape
+    x -= width // 2
+    y -= height // 2
+    
+    for c in range(0, 3):
+        frame[y:y + height, x:x + width, c] = image[:, :, c] * (image[:, :, 3] / 255.0) + frame[y:y + height, x:x + width, c] * (1.0 - image[:, :, 3] / 255.0)
 
 def mouse_callback_handler(face_recognizer: FaceRecognizer, event, x, y, _flags, _param):
     if face_recognizer.taking_input:
