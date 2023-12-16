@@ -28,14 +28,19 @@ class FaceRecognizer:
 
     def __init__(self):
         self.encode_faces()
-
+    
     def encode_faces(self):
-        for image in os.listdir("faces"):
-            if image.endswith(".jpg") or image.endswith(".png"):
-                face_image = face_recognition.load_image_file("faces/" + image)
+        for directory in os.listdir("faces"):
+            if os.path.isdir("faces/" + directory):
+                self.encode_faces_directory("faces/" + directory + "/", directory)
+
+    def encode_faces_directory(self, directory, name):
+        for image in os.listdir(directory):
+            if image.endswith(".jpg") or image.endswith(".png") or image.endswith(".jpeg"):
+                face_image = face_recognition.load_image_file(directory + image)
                 face_encoding = face_recognition.face_encodings(face_image)[0]
                 self.known_face_encodings.append(face_encoding)
-                self.known_face_names.append(image.split(".")[0])
+                self.known_face_names.append(name)
         print("Faces encoded")
         print(self.known_face_names)
 

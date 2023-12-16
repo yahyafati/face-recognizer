@@ -64,7 +64,10 @@ As the video starts, known faces present in the `faces` directory will be recogn
 * If an unknown face appears on the screen, the face will be annotated as "Unknown". 
 * Enter the person's name and press Enter and it will be added to the list of known faces
 
-5. Note
+5. Exiting the App
+* To exit the app press `ESC` button
+
+0. Note
 * Lighting is key. Use sufficient lighting and preferably good camera.
 * Manual Addition is not persisted, i.e. won't be remembered after program is closed.
 
