@@ -16,6 +16,7 @@ class FaceRecognizer:
 
     previous_faces: list[Face] = []
     paused = False
+    taking_input = False
     current_frame = None
 
     @staticmethod
@@ -160,7 +161,11 @@ class FaceRecognizer:
         cv2.destroyAllWindows()
     
     def toggle_pause(self):
-        self.paused = not self.paused
+        if not self.taking_input:
+            self.paused = not self.paused
+        else:
+            self.paused = True
+            print("Cannot pause while taking input")
 
 def face_confidence(face_distance, face_match_threshold=0.6):
     _range = (1.0 - face_match_threshold)
@@ -174,6 +179,8 @@ def face_confidence_formatted(face_distance, face_match_threshold=0.6):
     return "{0:.2f}%".format(face_confidence(face_distance, face_match_threshold) * 100)
 
 def mouse_callback_handler(face_recognizer: FaceRecognizer, event, x, y, _flags, _param):
+    if face_recognizer.taking_input:
+        return
     if event == cv2.EVENT_LBUTTONDOWN:
         face_recognizer.toggle_pause()
         if not face_recognizer.paused:
@@ -185,9 +192,11 @@ def mouse_callback_handler(face_recognizer: FaceRecognizer, event, x, y, _flags,
             face_recognizer.display_annotations(face_recognizer.current_frame, face)
             cv2.imshow("Video", face_recognizer.current_frame)
             cv2.waitKey(1)
+            face_recognizer.taking_input = True
             name = input("Enter name: ").strip().capitalize()
             while name == "":
                 name = input("Enter name: ").strip().capitalize()
+            face_recognizer.taking_input = False
             face.name = name
             face.color = Face.random_safe_color()
             face_recognizer.known_faces.append(face)
