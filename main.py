@@ -1,4 +1,4 @@
-import face_recognizer
+import src.face_recognizer as face_recognizer
 import sys
 import argparse
 

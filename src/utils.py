@@ -1,6 +1,6 @@
 import math
 import os
-from face import Face
+from .face import Face
 import cv2
 import numpy as np
 from time import time

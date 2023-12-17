@@ -3,11 +3,11 @@ import cv2
 import os, sys
 import numpy as np
 import math
-from face import Face
-from context import Context
+from .face import Face
+from .context import Context
 from time import sleep, time
 import copy
-import utils
+from . import utils
 
 class FaceRecognizer:
     

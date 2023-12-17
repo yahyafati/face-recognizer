@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from face import Face
+from .face import Face
 from time import time
 
 class Context:
