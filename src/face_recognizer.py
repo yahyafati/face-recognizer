@@ -116,6 +116,7 @@ class FaceRecognizer:
             name = "Unknown"
             confidence = "Unknown"
             score = 0
+            color = (0, 0, 255)
 
             face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
             best_match_index = np.argmin(face_distances)
@@ -123,6 +124,7 @@ class FaceRecognizer:
             if matches[best_match_index]:
                 name = self.context.known_faces[best_match_index].name
                 score = self.context.known_faces[best_match_index].score
+                color = self.context.known_faces[best_match_index].color
                 confidence = utils.face_confidence_formatted(face_distances[best_match_index])
                 previous_face = FaceRecognizer.get_face_by_name(self.context.previous_faces, name)
                 if previous_face:
@@ -131,11 +133,11 @@ class FaceRecognizer:
                 face.previous_locations.append(face.location)
                 face.previous_locations = face.previous_locations[-10:]
             else:
-                face.color = (0, 0, 255)
                 self.context.unknown_faces.append(face)
             face.confidence = confidence
             face.name = name
             face.score = score
+            face.color = color
     
     def write_remaining_time(self, frame, remaining_time_seconds: int):
         # at the top right corner
