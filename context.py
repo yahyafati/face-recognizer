@@ -56,7 +56,7 @@ class Context:
         _, frame = self.video_capture.read()
         frame = cv2.flip(frame, 1)
         if self.play_flappy:
-            darkness_factor = 0.4
+            darkness_factor = 1
             frame = cv2.addWeighted(frame, darkness_factor, np.zeros(frame.shape, frame.dtype), 0, 0)
         self.current_frame = frame
         return frame

@@ -48,7 +48,14 @@ class FaceRecognizer:
         font = cv2.FONT_HERSHEY_DUPLEX
         text = "Start"
         cv2.putText(frame, text, (left + 50, bottom - 50), font, 1.0, (0, 0, 0), 2)
-
+    
+    def eat_food(self, frame, face):
+        center = face.get_center(4)
+        if utils.circles_intersect((center[0], center[1], 50), (self.context.food_position[0], self.context.food_position[1], 20)):
+            self.context.generate_food_position(frame)
+            if face.best_match_index is not None:
+                self.context.known_faces[face.best_match_index].score += 1
+            face.score += 1
 
     def display_annotations(self, frame, face, no_tracking=False):
         if self.context.play_flappy and not self.context.start_pressed:
@@ -66,11 +73,7 @@ class FaceRecognizer:
             if self.context.play_flappy and self.context.start_pressed:
                 utils.overlay_image_transparent(frame, self.context.overlay_duck_image, center[0] - 50, center[1] - 50)
                 self.place_food(frame)
-                if utils.circles_intersect((center[0], center[1], 50), (self.context.food_position[0], self.context.food_position[1], 20)):
-                    self.context.generate_food_position(frame)
-                    if face.best_match_index is not None:
-                        self.context.known_faces[face.best_match_index].score += 1
-                    face.score += 1
+                self.eat_food(frame, face)
             else:
                 previous_centers = face.get_previous_centers(4)
                 for i, previous_center in enumerate(previous_centers):
