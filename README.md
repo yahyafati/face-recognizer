@@ -1,6 +1,8 @@
 # SimpleFace: A Python-Based Facial Recognition Tool
 
-SimpleFace is a lightweight Python tool designed for simple facial recognition tasks. This tool utilizes deep learning algorithms to detect and recognize faces in images or video streams.
+SimpleFace is a lightweight Python tool designed for simple facial recognition and tracking tasks. This tool utilizes deep learning algorithms to detect and recognize faces in images or video streams. Additionally, the tool also tracks users faec across different frames.
+
+Using the tracking capabilities, there is a simple game which can be played. We hope you enjoy them!
 
 
 # Prerequisites
@@ -23,7 +25,12 @@ source ./bin/activate      # For macOS/Linux
 ./bin/pip install -r requirements.txt # For macOS/Linux
 .\Scripts\pip install -r requirements.txt # For Windows
 ```
-4. Run **Simple Face**
+4. Help
+```bash
+./bin/python main.py --help
+.\Scripts\python main.py --help
+```
+5. Run **Simple Face**
 ```bash
 ./bin/python main.py # For macOS/Linux
 .\Scripts\python main.py # For Windows
