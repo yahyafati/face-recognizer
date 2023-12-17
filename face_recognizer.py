@@ -21,6 +21,7 @@ class FaceRecognizer:
     video_capture = None
     food_position = (400, 400)
     play_flappy = False
+    video_number = 0
     start_button_location = (300, 300)
     start_pressed = False
 
@@ -72,7 +73,7 @@ class FaceRecognizer:
     def generate_food_position(self, frame):
         frame_height, frame_width, _ = frame.shape
         # padding of 100 px on each side
-        padding = 300
+        padding = 350
         self.food_position = (np.random.randint(padding, frame_width - padding), np.random.randint(padding, frame_height - padding))
 
     def place_food(self, frame):
@@ -104,7 +105,7 @@ class FaceRecognizer:
         # cv2.circle(frame, center, 50, face.color, 2)
 
         if not no_tracking:
-            if self.play_flappy:
+            if self.play_flappy and self.start_pressed:
                 overlay_image_transparent(frame, self.overlay_duck_image, center[0] - 50, center[1] - 50)
                 self.place_food(frame)
                 if self.circles_intersect((center[0], center[1], 50), (self.food_position[0], self.food_position[1], 20)):
@@ -208,7 +209,7 @@ class FaceRecognizer:
         cv2.putText(frame, formatted, (right - 100, top + 50), font, 1.0, color, bold)
     
     def init_video_capture(self):
-        self.video_capture = cv2.VideoCapture(0)
+        self.video_capture = cv2.VideoCapture(self.video_number)
         if not self.video_capture.isOpened():
             print("Error opening video capture")
             sys.exit(1)
