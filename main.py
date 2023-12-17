@@ -13,13 +13,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     fr = face_recognizer.FaceRecognizer()
-    play_flappy = args.flappy
-    video_number = args.video
-    fr.play_flappy = play_flappy
-    fr.video_number = video_number
-    fr.init_video_capture()
+    fr.context.play_flappy = args.flappy
+    fr.context.video_number = args.video
+    fr.context.init_video_capture()
     fr.run_recognition()
 
-    if play_flappy:
-        for face in fr.faces:
+    if args.flappy:
+        for face in fr.context.faces:
             print(f"{face.name}: {face.score}")
