@@ -20,6 +20,8 @@ class Context:
     video_number = 0
     start_button_location = (300, 300)
     start_pressed = False
+    start_time = None
+    end_time = None
 
     def __init__(self):
         self.overlay_duck_image = cv2.imread("assets/flappy.png", cv2.IMREAD_UNCHANGED)

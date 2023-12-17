@@ -143,14 +143,23 @@ class FaceRecognizer:
         font = cv2.FONT_HERSHEY_DUPLEX
         bold = 2
         cv2.putText(frame, formatted, (right - 100, top + 50), font, 1.0, color, bold)
+    
+    def process_game_logic(self, frame):
+        if self.context.start_pressed and self.context.start_time is None:
+            self.context.start_time = time()
+            self.context.end_time = self.context.start_time + 30
+            self.context.generate_food_position(frame)
+        if self.context.play_flappy and self.context.start_pressed:
+            self.write_remaining_time(frame, self.context.end_time - time())
+            if time() > self.context.end_time:
+                return False
+        return True
 
     def run_recognition(self):
         cv2.namedWindow("Video")
         mouse_callback = lambda event, x, y, flags, param: utils.mouse_callback_handler(self, event, x, y, flags, param)
         cv2.setMouseCallback("Video", mouse_callback)
         
-        start_time = None
-        end_time = None
         while True:
             if self.context.paused:
                 if not self.handle_key_press(cv2.waitKey(1)):
@@ -163,15 +172,8 @@ class FaceRecognizer:
                 self.process_frame(rgb_small_frame)
             
             self.context.process_this_frame = not self.context.process_this_frame
-
-            if self.context.start_pressed and start_time is None:
-                start_time = time()
-                end_time = start_time + 30
-                self.context.generate_food_position(frame)
-            if self.context.play_flappy and self.context.start_pressed:
-                self.write_remaining_time(frame, end_time - time())
-                if time() > end_time:
-                    break
+            if not self.process_game_logic(frame):
+                break
 
             for face in self.context.faces:
                 self.display_annotations(frame, face)
