@@ -12,6 +12,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    print("Press 'ESC' to exit the program")
+
     fr = face_recognizer.FaceRecognizer()
     fr.context.play_flappy = args.flappy
     fr.context.video_number = args.video
