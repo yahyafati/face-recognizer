@@ -152,7 +152,7 @@ class FaceRecognizer:
     def process_game_logic(self, frame):
         if self.context.start_pressed and self.context.start_time is None:
             self.context.start_time = time()
-            self.context.end_time = self.context.start_time + 30
+            self.context.end_time = self.context.start_time + self.context.game_duration
             self.context.generate_food_position(frame)
         if self.context.play_flappy and self.context.start_pressed:
             self.write_remaining_time(frame, self.context.end_time - time())

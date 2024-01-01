@@ -21,6 +21,7 @@ class Context:
     start_button_location = (300, 300)
     start_pressed = False
     start_time = None
+    game_duration = 30
     end_time = None
 
     def __init__(self):
