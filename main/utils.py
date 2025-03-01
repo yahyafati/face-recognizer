@@ -31,18 +31,16 @@ def overlay_image_transparent(frame, image, x, y):
     y -= height // 2
 
     for c in range(0, 3):
-        frame[y : y + height, x : x + width, c] = image[:, :, c] * (
-            image[:, :, 3] / 255.0
-        ) + frame[y : y + height, x : x + width, c] * (1.0 - image[:, :, 3] / 255.0)
+        frame[y : y + height, x : x + width, c] = image[:, :, c] * (image[:, :, 3] / 255.0) + frame[
+            y : y + height, x : x + width, c
+        ] * (1.0 - image[:, :, 3] / 255.0)
 
 
 def handle_face_clicked(face_recognizer, face: Face):
     face_recognizer.context.next_frame()
     face.name = "Selected"
     face.color = (0, 255, 0)
-    face_recognizer.display_annotations(
-        face_recognizer.context.current_frame, face, no_tracking=True
-    )
+    face_recognizer.display_annotations(face_recognizer.context.current_frame, face, no_tracking=True)
     cv2.imshow("Video", face_recognizer.context.current_frame)
     cv2.waitKey(1)
     face_recognizer.context.taking_input = True
@@ -53,9 +51,7 @@ def handle_face_clicked(face_recognizer, face: Face):
     face.name = name
     face.color = Face.random_safe_color()
     face_recognizer.context.known_faces.append(face)
-    face_recognizer.display_annotations(
-        face_recognizer.context.current_frame, face, no_tracking=True
-    )
+    face_recognizer.display_annotations(face_recognizer.context.current_frame, face, no_tracking=True)
     cv2.imshow("Video", face_recognizer.context.current_frame)
     face_recognizer.toggle_pause()
 

@@ -1,0 +1,23 @@
+[tool.black]
+line-length = 120
+single-quotes = true
+target-version = ['py38']
+skip-string-normalization = true
+
+# Exclude files and directories using regular expressions
+exclude = '''
+/(
+    .git
+  | .tox
+  | \.pyc$
+  | .venv
+  | build
+  | dist
+  | migrations
+  | tests
+  | __pycache__
+  | bin
+  | include
+  | lib
+)/
+'''

@@ -9,19 +9,20 @@ from time import sleep, time
 import copy
 from . import utils
 
+
 class FaceRecognizer:
-    
+
     @staticmethod
     def get_face_by_name(faces, name):
         for face in faces:
             if face.name and face.name.lower() == name.lower():
                 return face
         return None
-    
+
     def __init__(self):
         self.context = Context()
         self.encode_faces()
-    
+
     def encode_faces(self):
         for directory in os.listdir("faces"):
             if os.path.isdir("faces/" + directory):
@@ -36,7 +37,12 @@ class FaceRecognizer:
                 self.context.known_faces.append(Face(name, face_encoding))
 
     def place_food(self, frame):
-        utils.overlay_image_transparent(frame, self.context.overlay_apple_image, self.context.food_position[0], self.context.food_position[1])
+        utils.overlay_image_transparent(
+            frame,
+            self.context.overlay_apple_image,
+            self.context.food_position[0],
+            self.context.food_position[1],
+        )
 
     def display_start_button(self, frame):
         # draw a rectangle with text "Start" at the position of the start button
@@ -48,10 +54,13 @@ class FaceRecognizer:
         font = cv2.FONT_HERSHEY_DUPLEX
         text = "Start"
         cv2.putText(frame, text, (left + 50, bottom - 50), font, 1.0, (0, 0, 0), 2)
-    
+
     def eat_food(self, frame, face):
         center = face.get_center(4)
-        if utils.circles_intersect((center[0], center[1], 50), (self.context.food_position[0], self.context.food_position[1], 20)):
+        if utils.circles_intersect(
+            (center[0], center[1], 50),
+            (self.context.food_position[0], self.context.food_position[1], 20),
+        ):
             self.context.generate_food_position(frame)
             if face.best_match_index is not None:
                 self.context.known_faces[face.best_match_index].score += 1
@@ -71,7 +80,12 @@ class FaceRecognizer:
 
         if not no_tracking:
             if self.context.play_flappy and self.context.start_pressed:
-                utils.overlay_image_transparent(frame, self.context.overlay_duck_image, center[0] - 50, center[1] - 50)
+                utils.overlay_image_transparent(
+                    frame,
+                    self.context.overlay_duck_image,
+                    center[0] - 50,
+                    center[1] - 50,
+                )
                 self.place_food(frame)
                 self.eat_food(frame, face)
             else:
@@ -80,10 +94,12 @@ class FaceRecognizer:
                     if i == 0:
                         continue
                     cv2.line(frame, previous_centers[i - 1], previous_center, face.color, 2)
-        
+
         cv2.rectangle(frame, (left, bottom - 35), (right, bottom), face.color, cv2.FILLED)
         font = cv2.FONT_HERSHEY_DUPLEX
-        confidence = utils.face_confidence_formatted(face_recognition.face_distance(self.context.get_known_face_encodings(), face_encoding)[best_match_index])
+        confidence = utils.face_confidence_formatted(
+            face_recognition.face_distance(self.context.get_known_face_encodings(), face_encoding)[best_match_index]
+        )
         text = name + " " + confidence
         cv2.putText(frame, text, (left + 6, bottom - 6), font, 1.0, (0, 0, 0), 1)
 
@@ -92,21 +108,23 @@ class FaceRecognizer:
             color = (255, 255, 255)
             bold = 2
             cv2.putText(frame, score_text, (left + 6, bottom - 6 - 35), font, 1.0, color, bold)
-    
+
     def handle_key_press(self, key):
         unknown_name = "".join([chr(k) for k in self.context.prev_keys])
         unknown_name = unknown_name.strip().capitalize()
-        if key == 27: # Escape
+        if key == 27:  # Escape
             return False
         elif key != -1:
             print(key)
         return True
-    
+
     def process_frame(self, frame):
         face_locations = face_recognition.face_locations(frame)
         face_encodings = face_recognition.face_encodings(frame, face_locations)
         self.context.previous_faces = self.context.faces.copy()
-        self.context.faces = [Face(None, encoding, location) for encoding, location in zip(face_encodings, face_locations)]
+        self.context.faces = [
+            Face(None, encoding, location) for encoding, location in zip(face_encodings, face_locations)
+        ]
         self.context.unknown_faces = []
 
         known_face_encodings = self.context.get_known_face_encodings()
@@ -138,7 +156,7 @@ class FaceRecognizer:
             face.name = name
             face.score = score
             face.color = color
-    
+
     def write_remaining_time(self, frame, remaining_time_seconds: int):
         # at the top right corner
         top = 50
@@ -148,7 +166,7 @@ class FaceRecognizer:
         font = cv2.FONT_HERSHEY_DUPLEX
         bold = 2
         cv2.putText(frame, formatted, (right - 100, top + 50), font, 1.0, color, bold)
-    
+
     def process_game_logic(self, frame):
         if self.context.start_pressed and self.context.start_time is None:
             self.context.start_time = time()
@@ -164,7 +182,7 @@ class FaceRecognizer:
         cv2.namedWindow("Video")
         mouse_callback = lambda event, x, y, flags, param: utils.mouse_callback_handler(self, event, x, y, flags, param)
         cv2.setMouseCallback("Video", mouse_callback)
-        
+
         while True:
             if self.context.paused:
                 if not self.handle_key_press(cv2.waitKey(1)):
@@ -175,15 +193,14 @@ class FaceRecognizer:
 
             if self.context.process_this_frame:
                 self.process_frame(rgb_small_frame)
-            
+
             self.context.process_this_frame = not self.context.process_this_frame
             if not self.process_game_logic(frame):
                 break
 
             for face in self.context.faces:
                 self.display_annotations(frame, face)
-            
-            
+
             cv2.imshow("Video", frame)
 
             key = cv2.waitKey(1)
@@ -191,7 +208,7 @@ class FaceRecognizer:
                 break
         self.context.video_capture.release()
         cv2.destroyAllWindows()
-    
+
     def toggle_pause(self):
         if not self.context.taking_input:
             self.context.paused = not self.context.paused

@@ -1,6 +1,6 @@
-import src.face_recognizer as face_recognizer
 import sys
 import argparse
+from main import face_recognizer
 
 args = sys.argv[1:]
 

@@ -3,6 +3,7 @@ import numpy as np
 from .face import Face
 from time import time
 
+
 class Context:
     process_this_frame = True
     prev_keys = []
@@ -30,29 +31,29 @@ class Context:
         self.overlay_apple_image = cv2.imread("assets/apple.png", cv2.IMREAD_UNCHANGED)
         self.overlay_apple_image = cv2.resize(self.overlay_apple_image, (0, 0), fx=0.05, fy=0.05)
         self.rng = np.random.default_rng(int(time()) % 1000000)
-    
+
     def get_known_face_encodings(self):
         return [face.encoding for face in self.known_faces]
-    
+
     def get_by_name(self, name):
         return FaceRecognizer.get_face_by_name(self.faces, name)
-    
+
     def get_small_rgb_frame(self):
         small_frame = cv2.resize(self.current_frame, (0, 0), fx=0.25, fy=0.25)
         return small_frame[:, :, ::-1]
-    
+
     def get_face_by_position(self, x, y):
         for face in self.faces:
             if face.is_in_face(x, y, 4):
                 return face
         return None
-    
+
     def init_video_capture(self):
         self.video_capture = cv2.VideoCapture(self.video_number)
         if not self.video_capture.isOpened():
             print("Error opening video capture")
             sys.exit(1)
-    
+
     def next_frame(self):
         _, frame = self.video_capture.read()
         frame = cv2.flip(frame, 1)
